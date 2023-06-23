@@ -11,6 +11,7 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
+  final List<GroceryItem> _groceryItems = [];
   void navigateToAddScreen() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => NewItem()));
   }
@@ -27,11 +28,15 @@ class _GroceryListState extends State<GroceryList> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: ListView.builder(
-          itemCount: groceryItems.length,
-          itemBuilder: (context, index) =>
-              GroceryListItem(groceryItem: groceryItems[index]),
-        ),
+        child: _groceryItems.isEmpty
+            ? const Center(
+                child: Text('No Item to show'),
+              )
+            : ListView.builder(
+                itemCount: _groceryItems.length,
+                itemBuilder: (context, index) =>
+                    GroceryListItem(groceryItem: _groceryItems[index]),
+              ),
       ),
     );
   }
