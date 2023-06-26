@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/screens/new_item.dart';
+import 'package:http/http.dart' as http;
 
-typedef void indexCallBack(int id);
+typedef IndexCallBack = void Function(int id);
 
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
@@ -12,13 +15,16 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
-  final List<GroceryItem> _groceryItems = [];
+  List<GroceryItem> _groceryItems = [];
   void navigateToAddScreen() async {
-    final newItem = await Navigator.of(context)
-        .push<GroceryItem>(MaterialPageRoute(builder: (_) => NewItem()));
-    if (newItem != null) {
+    final groceryItem = await Navigator.of(context).push<GroceryItem>(
+      MaterialPageRoute(
+        builder: (_) => const NewItem(),
+      ),
+    );
+    if (groceryItem != null) {
       setState(() {
-        _groceryItems.add(newItem);
+        _groceryItems.add(groceryItem);
       });
     }
   }
@@ -27,6 +33,41 @@ class _GroceryListState extends State<GroceryList> {
     setState(() {
       _groceryItems.removeAt(index);
     });
+  }
+
+  void _loadItems() async {
+    final url = Uri.parse(
+      'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list.json',
+    );
+    final response = await http.get(
+      url,
+    );
+    final Map<String, dynamic> listData = json.decode(response.body);
+    final List<GroceryItem> loadedItems = [];
+    for (final item in listData.entries) {
+      final cat = categories.entries.firstWhere(
+          (catItem) => catItem.value.title == item.value['category']);
+
+      loadedItems.add(
+        GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: cat.value),
+      );
+    }
+
+    setState(() {
+      _groceryItems = loadedItems;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    _loadItems();
   }
 
   @override
@@ -61,7 +102,7 @@ class _GroceryListState extends State<GroceryList> {
 class GroceryListItem extends StatelessWidget {
   final GroceryItem groceryItem;
   final int itemIndex;
-  final indexCallBack deletedItemIndex;
+  final IndexCallBack deletedItemIndex;
 
   const GroceryListItem(
       {super.key,
