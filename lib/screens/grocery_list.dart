@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/grocery_item.dart';
@@ -18,6 +17,7 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   bool _isLoading = true;
+  String? _error;
 
   void navigateToAddScreen() async {
     final groceryItem = await Navigator.of(context).push<GroceryItem>(
@@ -43,28 +43,36 @@ class _GroceryListState extends State<GroceryList> {
     final url = Uri.parse(
       'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list.json',
     );
-    final response = await http.get(
-      url,
-    );
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final cat = categories.entries.firstWhere(
-          (catItem) => catItem.value.title == item.value['category']);
-
-      loadedItems.add(
-        GroceryItem(
-            id: item.key,
-            name: item.value['name'],
-            quantity: item.value['quantity'],
-            category: cat.value),
+    https: //flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list/-NYl3ksoGUzH-mx0YQod
+    try {
+      final response = await http.get(
+        url,
       );
-    }
+      final Map<String, dynamic> listData = json.decode(response.body);
+      final List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final cat = categories.entries.firstWhere(
+            (catItem) => catItem.value.title == item.value['category']);
+        loadedItems.add(
+          GroceryItem(
+              id: item.key,
+              name: item.value['name'],
+              quantity: item.value['quantity'],
+              category: cat.value),
+        );
+      }
 
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
+      setState(() {
+        _groceryItems = loadedItems;
+        _isLoading = false;
+      });
+    } catch (error) {
+      print(error);
+      _error = 'something went wrong please try again later';
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -82,7 +90,7 @@ class _GroceryListState extends State<GroceryList> {
     );
 
     if (_isLoading) {
-      content = Center(child: CircularProgressIndicator());
+      content = const Center(child: CircularProgressIndicator());
     }
 
     if (_groceryItems.isNotEmpty) {
@@ -93,6 +101,12 @@ class _GroceryListState extends State<GroceryList> {
           itemIndex: index,
           deletedItemIndex: (id) => removeItem(id),
         ),
+      );
+    }
+
+    if (_error != null) {
+      content = Center(
+        child: Text(_error!),
       );
     }
 

@@ -19,6 +19,7 @@ class _NewItem extends State<NewItem> {
   int _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
   var _isSending = false;
+  String? _error;
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
@@ -29,33 +30,38 @@ class _NewItem extends State<NewItem> {
       final url = Uri.parse(
         'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list.json',
       );
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(
-          {
-            'name': _enteredName,
-            'quantity': _enteredQuantity,
-            'category': _selectedCategory.title
-          },
-        ),
-      );
-      final responseData = jsonDecode(response.body);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isSending = false;
-      });
 
-      Navigator.of(context).pop(GroceryItem(
-        id: responseData['name'],
-        name: _enteredName,
-        quantity: _enteredQuantity,
-        category: _selectedCategory,
-      ));
+      try {
+        final response = await http.post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(
+            {
+              'name': _enteredName,
+              'quantity': _enteredQuantity,
+              'category': _selectedCategory.title
+            },
+          ),
+        );
+        final responseData = jsonDecode(response.body);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isSending = false;
+        });
+
+        Navigator.of(context).pop(GroceryItem(
+          id: responseData['name'],
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ));
+      } catch (error) {
+        _error = error.toString();
+      }
     }
   }
 
