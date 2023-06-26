@@ -18,11 +18,14 @@ class _NewItem extends State<NewItem> {
   var _enteredName = '';
   int _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-
+      setState(() {
+        _isSending = true;
+      });
       final url = Uri.parse(
         'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list.json',
       );
@@ -43,6 +46,9 @@ class _NewItem extends State<NewItem> {
       if (!mounted) {
         return;
       }
+      setState(() {
+        _isSending = false;
+      });
 
       Navigator.of(context).pop(GroceryItem(
         id: responseData['name'],
@@ -145,12 +151,23 @@ class _NewItem extends State<NewItem> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                        onPressed: () {
-                          _formKey.currentState!.reset();
-                        },
-                        child: const Text('Reset')),
+                      onPressed: !_isSending
+                          ? () {
+                              _formKey.currentState!.reset();
+                            }
+                          : null,
+                      child: const Text('Reset'),
+                    ),
                     ElevatedButton(
-                        onPressed: _saveItem, child: const Text('Add Item'))
+                      onPressed: !_isSending ? _saveItem : null,
+                      child: !_isSending
+                          ? const Text('Add Item')
+                          : const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(),
+                            ),
+                    )
                   ],
                 )
               ],

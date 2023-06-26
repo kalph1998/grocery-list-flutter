@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/grocery_item.dart';
@@ -16,6 +17,8 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
+  bool _isLoading = true;
+
   void navigateToAddScreen() async {
     final groceryItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
@@ -25,6 +28,7 @@ class _GroceryListState extends State<GroceryList> {
     if (groceryItem != null) {
       setState(() {
         _groceryItems.add(groceryItem);
+        _isLoading = false;
       });
     }
   }
@@ -59,6 +63,7 @@ class _GroceryListState extends State<GroceryList> {
 
     setState(() {
       _groceryItems = loadedItems;
+      _isLoading = false;
     });
   }
 
@@ -72,6 +77,25 @@ class _GroceryListState extends State<GroceryList> {
 
   @override
   Widget build(BuildContext context) {
+    Widget content = const Center(
+      child: Text('No Item to show'),
+    );
+
+    if (_isLoading) {
+      content = Center(child: CircularProgressIndicator());
+    }
+
+    if (_groceryItems.isNotEmpty) {
+      content = ListView.builder(
+        itemCount: _groceryItems.length,
+        itemBuilder: (context, index) => GroceryListItem(
+          groceryItem: _groceryItems[index],
+          itemIndex: index,
+          deletedItemIndex: (id) => removeItem(id),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your groceries'),
@@ -82,18 +106,7 @@ class _GroceryListState extends State<GroceryList> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: _groceryItems.isEmpty
-            ? const Center(
-                child: Text('No Item to show'),
-              )
-            : ListView.builder(
-                itemCount: _groceryItems.length,
-                itemBuilder: (context, index) => GroceryListItem(
-                  groceryItem: _groceryItems[index],
-                  itemIndex: index,
-                  deletedItemIndex: (id) => removeItem(id),
-                ),
-              ),
+        child: content,
       ),
     );
   }
