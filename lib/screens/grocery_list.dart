@@ -5,7 +5,7 @@ import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/screens/new_item.dart';
 import 'package:http/http.dart' as http;
 
-typedef IndexCallBack = void Function(int id);
+typedef ItemCallBack = void Function(GroceryItem item);
 
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
@@ -33,32 +33,35 @@ class _GroceryListState extends State<GroceryList> {
     }
   }
 
-  void removeItem(index) {
-    setState(() {
-      _groceryItems.removeAt(index);
-    });
-  }
-
   void _loadItems() async {
     final url = Uri.parse(
       'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list.json',
     );
-    https: //flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list/-NYl3ksoGUzH-mx0YQod
+
     try {
       final response = await http.get(
         url,
       );
+
+      if (response.body == 'null') {
+        setState(() {
+          _groceryItems = [];
+          _isLoading = false;
+        });
+        return;
+      }
       final Map<String, dynamic> listData = json.decode(response.body);
       final List<GroceryItem> loadedItems = [];
       for (final item in listData.entries) {
-        final cat = categories.entries.firstWhere(
+        final categoryMap = categories.entries.firstWhere(
             (catItem) => catItem.value.title == item.value['category']);
         loadedItems.add(
           GroceryItem(
-              id: item.key,
-              name: item.value['name'],
-              quantity: item.value['quantity'],
-              category: cat.value),
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: categoryMap.value,
+          ),
         );
       }
 
@@ -67,7 +70,6 @@ class _GroceryListState extends State<GroceryList> {
         _isLoading = false;
       });
     } catch (error) {
-      print(error);
       _error = 'something went wrong please try again later';
       setState(() {
         _isLoading = false;
@@ -81,6 +83,22 @@ class _GroceryListState extends State<GroceryList> {
     super.initState();
 
     _loadItems();
+  }
+
+  void deleteItem(GroceryItem item) async {
+    int itemIndex = _groceryItems.indexOf(item);
+    setState(() {
+      _groceryItems.remove(item);
+    });
+    final url = Uri.parse(
+      'https://flutter-shopping-list-c0010-default-rtdb.asia-southeast1.firebasedatabase.app/shopping-list/${item.id}.json',
+    );
+    try {
+      await http.delete(url);
+      _loadItems();
+    } catch (error) {
+      _groceryItems.insert(itemIndex, item);
+    }
   }
 
   @override
@@ -98,13 +116,13 @@ class _GroceryListState extends State<GroceryList> {
         itemCount: _groceryItems.length,
         itemBuilder: (context, index) => GroceryListItem(
           groceryItem: _groceryItems[index],
-          itemIndex: index,
-          deletedItemIndex: (id) => removeItem(id),
+          removeItem: (GroceryItem item) => deleteItem(item),
         ),
       );
     }
 
     if (_error != null) {
+      print(_error);
       content = Center(
         child: Text(_error!),
       );
@@ -128,22 +146,21 @@ class _GroceryListState extends State<GroceryList> {
 
 class GroceryListItem extends StatelessWidget {
   final GroceryItem groceryItem;
-  final int itemIndex;
-  final IndexCallBack deletedItemIndex;
+  final ItemCallBack removeItem;
 
-  const GroceryListItem(
-      {super.key,
-      required this.groceryItem,
-      required this.itemIndex,
-      required this.deletedItemIndex});
+  const GroceryListItem({
+    super.key,
+    required this.groceryItem,
+    required this.removeItem,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: Key(itemIndex.toString()),
+      key: Key(groceryItem.id),
       background: Container(color: Colors.red),
       onDismissed: (direction) {
-        deletedItemIndex(itemIndex);
+        removeItem(groceryItem);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
